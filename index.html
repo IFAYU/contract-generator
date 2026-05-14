@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>財顧合約產生器</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Microsoft JhengHei',-apple-system,sans-serif;background:#f0f0f0}
+
+/* 左側表單 */
+#sidebar{
+  position:fixed;top:0;left:0;width:310px;height:100vh;
+  background:#1e2430;overflow-y:auto;padding:14px;
+  border-right:2px solid #3b82f6;
+  z-index:100;
+}
+#sidebar h1{font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:12px}
+
+.tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+.tab{padding:5px 10px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:#2d3748;color:#94a3b8}
+.tab.on{background:#1e3a8a;color:#93c5fd}
+
+.g{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#64748b;margin:12px 0 6px}
+.row{margin-bottom:8px}
+.row label{display:block;font-size:11px;color:#94a3b8;margin-bottom:3px}
+.row input,.row select{width:100%;background:#0f172a;border:1px solid #334155;border-radius:5px;color:#e2e8f0;font-size:13px;padding:6px 8px;outline:none}
+.row input:focus{border-color:#3b82f6}
+.row input.name-input{font-size:17px;font-weight:700;border-color:#3b82f6;background:#0a0f1e;color:#fff}
+.half{display:flex;gap:6px}
+.half .row{flex:1}
+.btns{display:flex;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid #2d3748}
+.btn{flex:1;padding:8px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;border:none}
+.btn-print{background:#1e3a8a;color:#93c5fd}
+.btn-copy{background:#14532d;color:#4ade80}
+
+/* 右側合約 */
+#main{margin-left:310px;padding:20px;min-height:100vh}
+
+#doc{
+  background:white;max-width:800px;margin:0 auto;
+  padding:50px 60px;
+  font-family:'PMingLiU','MingLiU','Microsoft JhengHei',serif;
+  font-size:11pt;line-height:1.9;color:#000;
+  box-shadow:0 2px 20px rgba(0,0,0,.15);
+  min-height:800px;
+}
+
+#doc .blank{
+  border-bottom:1px solid #000;display:inline-block;
+  min-width:80px;vertical-align:bottom;
+}
+#doc strong.filled{color:#000;font-weight:700}
+
+/* 列印 */
+@media print{
+  #sidebar{display:none!important}
+  #main{margin-left:0;padding:0}
+  #doc{box-shadow:none;max-width:none;padding:20mm 25mm}
+  body{background:white}
+}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>📄 財顧合約產生器</h1>
+
+  <div class="tabs">
+    <button class="tab on" onclick="sw(0)">財顧委任</button>
+    <button class="tab" onclick="sw(1)">投資確認書</button>
+    <button class="tab" onclick="sw(2)">股票代持</button>
+  </div>
+
+  <!-- FORM 0 -->
+  <div id="f0">
+    <div class="row"><label>委託人姓名 *</label><input class="name-input" id="a0" placeholder="王小明" oninput="go()"></div>
+    <div class="g">身分資料</div>
+    <div class="row"><label>身分證 / 統一編號</label><input id="a1" placeholder="A123456789" oninput="go()"></div>
+    <div class="row"><label>地址</label><input id="a2" placeholder="縣市區路號" oninput="go()"></div>
+    <div class="row"><label>電話</label><input id="a3" placeholder="0900000000" oninput="go()"></div>
+    <div class="g">合約期間</div>
+    <div class="row"><label>開始日期</label><input type="date" id="a4" oninput="setEnd();go()"></div>
+    <div class="row"><label>結束日期（自動 +1年）</label><input type="date" id="a5" readonly style="opacity:.4"></div>
+    <div class="g">報酬</div>
+    <div class="half">
+      <div class="row"><label>年費（元）</label><input type="number" id="a6" value="15000" oninput="go()"></div>
+      <div class="row"><label>付款月份</label><input type="number" id="a7" placeholder="1" min="1" max="12" oninput="go()"></div>
+    </div>
+    <div class="row"><label>付款截止日</label><input type="number" id="a8" placeholder="31" min="1" max="31" oninput="go()"></div>
+    <div class="g">簽約</div>
+    <div class="row"><label>簽約日期</label><input type="date" id="a9" oninput="go()"></div>
+  </div>
+
+  <!-- FORM 1 -->
+  <div id="f1" style="display:none">
+    <div class="row"><label>投資人姓名 *</label><input class="name-input" id="b0" placeholder="王小明" oninput="go()"></div>
+    <div class="g">資料</div>
+    <div class="row"><label>身分證 / 統編</label><input id="b1" placeholder="A123456789" oninput="go()"></div>
+    <div class="row"><label>案件編號</label><input id="b2" placeholder="2025-001" oninput="go()"></div>
+    <div class="g">投資資訊</div>
+    <div class="row"><label>受任人（財務顧問）</label><input id="b3" value="游宗憲" oninput="go()"></div>
+    <div class="row"><label>投資標的名稱</label><input id="b4" placeholder="藍新科技股份有限公司" oninput="go()"></div>
+    <div class="row"><label>投資金額（元）</label><input type="number" id="b5" placeholder="0" oninput="go()"></div>
+    <div class="row"><label>預計執行日期</label><input type="date" id="b6" oninput="go()"></div>
+    <div class="g">簽署</div>
+    <div class="row"><label>簽署日期</label><input type="date" id="b7" oninput="go()"></div>
+  </div>
+
+  <!-- FORM 2 -->
+  <div id="f2" style="display:none">
+    <div class="row"><label>甲方（投資人）姓名 *</label><input class="name-input" id="c0" placeholder="王小明" oninput="go()"></div>
+    <div class="g">甲方資料</div>
+    <div class="row"><label>身分證字號</label><input id="c1" placeholder="A123456789" oninput="go()"></div>
+    <div class="row"><label>通訊地址</label><input id="c2" placeholder="縣市區路號" oninput="go()"></div>
+    <div class="row"><label>出生年月日</label><input type="date" id="c3" oninput="go()"></div>
+    <div class="row"><label>電話</label><input id="c4" placeholder="0900000000" oninput="go()"></div>
+    <div class="g">股票資訊</div>
+    <div class="row"><label>股份有限公司名稱</label><input id="c5" placeholder="藍新科技" oninput="go()"></div>
+    <div class="half">
+      <div class="row"><label>股數</label><input type="number" id="c6" placeholder="0" oninput="go()"></div>
+      <div class="row"><label>每股價格（元）</label><input type="number" id="c7" placeholder="0" oninput="go()"></div>
+    </div>
+    <div class="row"><label>總價款（自動）</label><input id="c8" readonly style="opacity:.4"></div>
+    <div class="g">簽署</div>
+    <div class="row"><label>簽署日期</label><input type="date" id="c9" oninput="go()"></div>
+  </div>
+
+  <div class="btns">
+    <button class="btn btn-print" onclick="window.print()">🖨️ 列印/PDF</button>
+    <button class="btn btn-copy" onclick="doCopy()">📋 複製</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="doc">正在載入合約...</div>
+</div>
+
+<script>
+var T = 0;
+
+function g(id){ return document.getElementById(id); }
+function v(id){ var e=g(id); return e ? e.value.trim() : ''; }
+
+function sw(n){
+  T=n;
+  [0,1,2].forEach(function(i){
+    g('f'+i).style.display = i===n ? 'block' : 'none';
+    document.querySelectorAll('.tab')[i].className = 'tab' + (i===n?' on':'');
+  });
+  go();
+}
+
+function setEnd(){
+  var s = v('a4');
+  if(!s) return;
+  var d = new Date(s);
+  d.setFullYear(d.getFullYear()+1);
+  d.setDate(d.getDate()-1);
+  g('a5').value = d.toISOString().split('T')[0];
+}
+
+function roc(s){
+  if(!s) return null;
+  var p = s.split('-');
+  return { y: parseInt(p[0])-1911, m: parseInt(p[1]), d: parseInt(p[2]) };
+}
+
+function numZh(n){
+  n = parseInt(n);
+  if(!n || isNaN(n)) return null;
+  if(n===0) return '零元整';
+  var D=['','一','二','三','四','五','六','七','八','九'];
+  var U=['','十','百','千'];
+  function seg(x){
+    if(!x) return '';
+    var s='',z=false;
+    for(var i=3;i>=0;i--){
+      var d=Math.floor(x/Math.pow(10,i))%10;
+      if(d){ if(z)s+='零'; if(!(i===1&&d===1&&!s))s+=D[d]; s+=U[i]; z=false; }
+      else if(s) z=true;
+    }
+    return s;
+  }
+  var wan=Math.floor(n/10000), ge=n%10000;
+  var r='';
+  if(wan) r+=seg(wan)+'萬';
+  if(ge){ if(wan&&ge<1000)r+='零'; r+=seg(ge); }
+  return r+'元整';
+}
+
+function B(val, len){
+  len = len||6;
+  if(val) return '<strong class="filled">'+val+'</strong>';
+  var sp='';
+  for(var i=0;i<len;i++) sp+='&nbsp;&nbsp;';
+  return '<span class="blank">'+sp+'</span>';
+}
+
+function fmtDate(s){
+  var p=roc(s);
+  return p ? p.y+'年'+p.m+'月'+p.d+'日' : null;
+}
+
+function go(){
+  try{
+    if(T===0) gen0();
+    else if(T===1) gen1();
+    else gen2();
+  }catch(e){
+    g('doc').innerHTML='<p style="color:red">錯誤：'+e.message+'</p>';
+  }
+}
+
+// ========== 財顧委任合約書 ==========
+function gen0(){
+  var name=v('a0'), id=v('a1'), addr=v('a2'), phone=v('a3');
+  var s=v('a4'), e=v('a5');
+  var fee=v('a6')||'15000';
+  var pm=v('a7'), pd=v('a8');
+  var sign=v('a9');
+  var sp=roc(s), ep=roc(e), sg=roc(sign);
+  var feeCh=numZh(fee)||'一萬五千元整';
+  var feeNum=parseInt(fee).toLocaleString('zh-TW');
+  var _s = sp ? sp.y+'年'+sp.m+'月'+sp.d+'日' : B('',4);
+  var _e = ep ? ep.y+'年'+ep.m+'月'+ep.d+'日' : B('',4);
+  var _sy = sg?sg.y:B('',3), _sm=sg?sg.m:B('',2), _sd=sg?sg.d:B('',2);
+
+  g('doc').innerHTML =
+'<p style="text-align:center;font-size:16pt;font-weight:bold;letter-spacing:4px;margin-bottom:20px">財顧委任合約書</p>'+
+'<p>委託人：'+B(name)+'</p>'+
+'<p>受任人：游宗憲</p>'+
+'<p style="margin-top:10px">緣委託人委請受任人提供資本市場資訊、分享其經驗，並於合法範圍內就委託人詢問事項提供諮詢意見，雙方合意約定之權利義務如下：</p>'+
+'<p style="margin-top:12px"><strong>一、服務性質與法律定位</strong></p>'+
+'<p>（一） 本契約服務內容僅屬：</p>'+
+'<p style="margin-left:2em">1.一般性資本市場資訊分享　2.公開資料整理與說明　3.財務知識教育　4.個人經驗交流</p>'+
+'<p>（二） 本服務不包含：個別投資標的推薦、投資買賣建議、資產配置規劃、投資策略制定、投資顧問業務、代為投資或操作資產。</p>'+
+'<p>（三） 雙方確認：本契約非投資顧問契約，受任人非投資顧問業者，亦不構成投資招攬、投資募集或任何形式之投資推介行為。</p>'+
+'<p style="margin-top:12px"><strong>二、委託期間：</strong></p>'+
+'<p>（一） 自民國(下同)'+_s+'起至'+_e+'止，共計1年。</p>'+
+'<p>（二） 委託期滿後，如委託人欲以同一條件續行委任，得由受任人以請款單、通訊軟體或電話通知委託人，委託人交付價金後，合約即為成立，委託人逾期未付款者，受任人得暫停或停止提供服務。</p>'+
+'<p style="margin-top:12px"><strong>三、委託報酬：</strong></p>'+
+'<p>委託人於委託期間內，應於每年'+B(pm,2)+'月'+B(pd,2)+'日以前，按年給付新台幣(下同)'+feeCh+'（NT$'+feeNum+'），作為受任人之委託報酬。支付方式由受任人指定之帳戶或支付方式為之。</p>'+
+'<p style="margin-top:12px"><strong>四、受任人權利義務：</strong></p>'+
+'<p>（一） 受任人於委託期間，在合乎法規規定範圍內為委託人提供下列服務：</p>'+
+'<p style="margin-left:2em">1.不定期提供投資機會資訊蒐集、整理與揭露。2.不定期提供資本市場投資經驗解析。3.就委託人所詢事項提供諮詢意見。</p>'+
+'<p>（二） 受任人為提供前開服務，得複委託由第三人提供。（三） 受任人就委託人提供之資料應善盡保密義務，在未得委託人同意或主動揭露前不得以任何方式使第三人知悉。（四） 委託人如未依本合約書給付報酬，受任人於收齊委託報酬前，得拒絕提供任何服務，但如係因可歸責於受任人之事由導致者不得拒絕。（五） 受任人得隨時終止契約，已履行服務部分之報酬仍應給付。（六） 委託人違反契約義務時，受任人就委託人因契約終止所生任何損害均無須負責。（七） 受任人提供之資訊，可能來自公開資料或第三方來源，受任人不保證其正確性、完整性或即時性。（八） 受任人得以書面、電子郵件、通訊軟體或線上平台提供服務。（九） 受任人得保存服務紀錄、通訊內容及相關資料，作為履約管理及法律證據。（十） 投資機會之提供，受市場條件影響，受任人不保證一定提供特定數量或類型之投資機會。</p>'+
+'<p style="margin-top:12px"><strong>五、委託人權利義務：</strong></p>'+
+'<p>（一） 委託人就受任人提供之資料，除市場上公開資料以外，應善盡保密義務，在未得受任人同意或主動揭露前不得以任何方式使第三人知悉。（二） 受任人如未依本合約書之約定提供服務，經委託人定相當期間仍未履行，委託人得解除本合約書，並就受任人尚未履行之部分得請求受任人返還已領取之報酬及費用，惟若係因其他可歸責於委託人事由所致者，縱受任人尚未履行，就已領取報酬及預付之費用亦不得請求返還。（三） 委託人於委託期間內得單方隨時終止本合約書，惟若於顯然不利於受任人之時期終止者，就受任人因此所受損害應負損害賠償責任。（四） 委託人不得將受任人提供之資料對外公開、作為投資招攬、商業使用或提供第三人。</p>'+
+'<p style="margin-top:12px"><strong>六、投資風險與責任限制</strong></p>'+
+'<p>（一） 受任人提供任何資訊、說明或觀點僅供一般參考，不構成投資建議、投資招攬，不保證獲利。（二） 委託人所有投資決定均自行判斷並自負盈虧。（三） 受任人不對投資損益結果、市場價格變動、投資機會成本、第三人行為、間接或衍生損害負責。（四） 除受任人故意或重大過失外，不負損害賠償責任。（五） 受任人依本契約所負之一切損害賠償責任，其金額以委託人於契約終止日前一年內實際支付予受任人之報酬總額為上限。（六） 受任人不負責任何營業損失、機會損失或其他間接損害。</p>'+
+'<p style="margin-top:12px"><strong>七、服務履行認定、退費限制及資訊價值確認</strong></p>'+
+'<p>（一） 本契約服務之履行，以各項服務內容實際提供、交付或開放使用為認定基準，不以時間經過為標準。（二） 凡受任人已提供、交付或開放使用之服務，均視為履行完成，不得請求退費。（三） 已履行服務包括但不限於：市場分析報告或研究資料交付；LINE@ 或其他通訊社群加入或服務開通；社群資訊提供或更新；個別問題回覆；客製化資料整理或分析。（四） 前項服務因具不可回復性，一經提供即無法回收或撤回。（五） 委託人不得以未閱讀、未使用、未參與或主觀認定無效益為由要求退費。（六） 契約終止時，僅就尚未提供之服務，依附件「服務價值分配表」按比例退費。（七） 服務價值之認定，不以投資是否成立、投資成果或投資報酬為判斷基準。</p>'+
+'<p style="margin-top:12px"><strong>八、投資機會資訊揭露與引介聲明</strong></p>'+
+'<p>（一） 受任人於服務過程中，可能提供投資機會相關資訊或第三方聯絡方式，該等行為性質為資訊揭露、機會分享及人脈引介。（二） 本服務不構成投資顧問服務、投資結果保證或收益承諾。是否投資及投資條件，均由委託人自行判斷。</p>'+
+'<p style="margin-top:12px"><strong>九、第三方投資關係完全獨立</strong></p>'+
+'<p>委託人與任何投資標的、專案或第三方所成立之法律關係，均與受任人無涉。受任人不對投資標的真實性、財務狀況、營運結果、履約能力、投資成果，以及任何投資風險與損益負責，均由委託人自行承擔。</p>'+
+'<p style="margin-top:12px"><strong>十、契約終止</strong></p>'+
+'<p>任一方得隨時終止本契約。終止通知得以書面文件、電子郵件、通訊軟體訊息（包含 LINE、LINE@、Messenger 等）或其他可留存紀錄之方式為之。前項通知，以訊息送達可供對方合理查閱之狀態時，視為送達。契約終止不影響終止前已發生之權利義務。</p>'+
+'<p style="margin-top:12px"><strong>十一至十五、個人資料保護 / 不可抗力 / 準據法 / 簽署方式 / 電子通訊</strong></p>'+
+'<p>乙方得蒐集、處理及利用委託人個人資料，僅限契約履行、客戶管理及法令遵循目的。因天災、政府命令、系統故障或其他不可抗力致無法履約者，不負違約責任。本契約之解釋及適用，均以中華民國法律為準據法。因本契約所生或與本契約相關之一切爭議，雙方同意以臺灣高雄地方法院為第一審專屬管轄法院。本合約書正本一式兩份，雙方各執一份為憑。若由數位簽約工具「點點簽」簽屬，簽屬完成後系統自動發送雙方電子信箱合約完成檔一份為憑。雙方間以電子郵件、通訊軟體、社群平台或其他電子方式所為之通知、對話、資料傳送及紀錄，均得作為契約履行及權利義務認定之證據，與書面文件具有同等證據效力。</p>'+
+'<p style="margin-top:12px"><strong>十六、委託人投資風險判斷能力聲明</strong></p>'+
+'<p>委託人確認其具備相當之財務知識、投資經驗及風險承受能力，足以自行判斷投資相關風險，並有能力自行評估是否參與任何投資機會。受任人未對委託人之投資適合度進行評估或判斷。</p>'+
+'<p style="margin-top:12px"><strong>十七、投資風險及服務性質最終確認</strong></p>'+
+'<p>委託人確認並聲明：（一）已充分理解本契約服務僅為一般性市場資訊分享、財務知識說明及經驗交流，非投資顧問服務。（二）未接受任何投資建議、投資策略規劃或資產配置建議。（三）所有投資決定均由委託人自行判斷並自負盈虧。（四）投資具有風險，可能發生本金損失或其他損害。（五）受任人未保證任何投資成果或報酬。（六）研究報告、分析資料、社群資訊及回覆內容具不可回復性，一經提供即無法回收。（七）委託人不得因投資結果、未使用服務或主觀認定無效益要求退費或賠償。（八）除受任人故意或重大過失外，不得向受任人請求任何投資相關損害賠償。（九）委託人已充分閱讀並理解本條內容，並自願接受。</p>'+
+'<div style="border:2px solid #000;padding:12px 16px;margin:16px 0;background:#fafafa">'+
+'<p style="font-weight:bold;text-align:center;margin-bottom:6px">【重要風險確認】</p>'+
+'<p style="text-align:center">本人已逐條閱讀並理解本契約第十七條內容，並確認投資風險完全由本人自行承擔。</p>'+
+'<p style="margin-top:10px">委託人親筆簽名：<span class="blank" style="min-width:200px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>'+
+'<p>日期：<span class="blank" style="min-width:150px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>'+
+'</div>'+
+'<p style="margin-top:16px"><strong>立書人：</strong></p>'+
+'<table width="100%" style="margin-top:12px;border-collapse:collapse">'+
+'<tr>'+
+'<td style="width:48%;vertical-align:top;padding-right:16px">'+
+'<p><strong>委託人（自然人）或委託人（法人）：</strong></p>'+
+'<p>代表人：'+B(name)+'</p>'+
+'<p>身分證或統一編號：'+B(id)+'</p>'+
+'<p>地址：'+B(addr,12)+'</p>'+
+'<p>電話：'+B(phone)+'</p>'+
+'</td>'+
+'<td style="width:4%"></td>'+
+'<td style="width:48%;vertical-align:top;padding-left:16px;border-left:1px solid #666">'+
+'<p><strong>受任人：游宗憲</strong></p>'+
+'<p>身分證字號：[ID_REDACTED]</p>'+
+'<p>地址：[ADDRESS_REDACTED]</p>'+
+'<p>電話：[PHONE_REDACTED]</p>'+
+'</td>'+
+'</tr>'+
+'</table>'+
+'<p style="text-align:center;margin-top:20px">簽&nbsp;約&nbsp;日&nbsp;期：中&nbsp;華&nbsp;民&nbsp;國&nbsp;'+_sy+'&nbsp;年&nbsp;'+_sm+'&nbsp;月&nbsp;'+_sd+'&nbsp;日</p>'+
+'<hr style="margin:24px 0">'+
+'<p style="font-weight:bold;text-align:center">附件一──服務價值分配表（第七條退費依據）</p>'+
+'<table width="100%" style="border-collapse:collapse;margin-top:10px;font-size:10.5pt">'+
+'<tr style="background:#eee"><th style="border:1px solid #000;padding:5px 8px;text-align:left">服務項目</th><th style="border:1px solid #000;padding:5px 8px">價值比例</th><th style="border:1px solid #000;padding:5px 8px">履行認定</th></tr>'+
+'<tr><td style="border:1px solid #000;padding:5px 8px">市場分析報告或研究資料提供</td><td style="border:1px solid #000;padding:5px 8px;text-align:center">70%</td><td style="border:1px solid #000;padding:5px 8px;text-align:center">交付即履行</td></tr>'+
+'<tr><td style="border:1px solid #000;padding:5px 8px">社群服務加入與資訊提供</td><td style="border:1px solid #000;padding:5px 8px;text-align:center">20%</td><td style="border:1px solid #000;padding:5px 8px;text-align:center">加入即履行</td></tr>'+
+'<tr><td style="border:1px solid #000;padding:5px 8px">個別問題回覆或諮詢</td><td style="border:1px solid #000;padding:5px 8px;text-align:center">10%</td><td style="border:1px solid #000;padding:5px 8px;text-align:center">回覆即履行</td></tr>'+
+'</table>';
+}
+
+// ========== 投資參與確認書 ==========
+function gen1(){
+  var name=v('b0'), id=v('b1'), caseNo=v('b2');
+  var agent=v('b3')||'游宗憲';
+  var target=v('b4'), amt=v('b5');
+  var exec=v('b6'), sign=v('b7');
+  var ep=roc(exec), sg=roc(sign);
+  var amtNum=amt?parseInt(amt).toLocaleString('zh-TW'):null;
+  var amtCh=numZh(amt);
+  var _exec=ep?ep.y+'年'+ep.m+'月'+ep.d+'日':B('',6);
+  var _sy=sg?sg.y:B('',3), _sm=sg?sg.m:B('',2), _sd=sg?sg.d:B('',2);
+
+  g('doc').innerHTML=
+'<p style="text-align:center;font-size:16pt;font-weight:bold;letter-spacing:3px;margin-bottom:6px">投資授權與代持確認書</p>'+
+'<p style="text-align:right;font-size:9pt;margin-bottom:14px">案件編號：'+(caseNo||B('',6))+'</p>'+
+'<table width="100%" style="margin-bottom:14px;line-height:2.1;border-collapse:collapse">'+
+'<tr><td style="width:140px;color:#444">投資人姓名：</td><td>'+B(name)+'</td></tr>'+
+'<tr><td>身分證字號：</td><td>'+B(id)+'</td></tr>'+
+'<tr><td>受任人（財務顧問）：</td><td><strong>'+agent+'</strong></td></tr>'+
+'<tr><td>投資標的名稱：</td><td>'+B(target,8)+'</td></tr>'+
+'<tr><td>投資金額：</td><td>'+(amtNum?'<strong>新臺幣 '+amtNum+' 元整（'+amtCh+'）</strong>':B('',10))+'</td></tr>'+
+'<tr><td colspan="2" style="font-size:8.5pt;color:#666">（投資金額以實際匯款金額為準，並視為本人最終投資指示）</td></tr>'+
+'<tr><td>預計執行日期：</td><td>民國'+_exec+'</td></tr>'+
+'</table>'+
+'<p style="margin-top:12px"><strong>一、投資授權與代持確認</strong></p>'+
+'<p>（一） 本人確認本次投資係基於本人獨立判斷所為之決定，並授權受任人依本人指示代為認購及名義持有投資權益。（二） 受任人僅依指示執行投資程序及名義代持，投資權益之實質所有權歸本人所有，受任人不享有投資利益或處分權。（三） 本人同意依投資安排交付投資資金，並依受任人指定方式完成付款。</p>'+
+'<p style="margin-top:12px"><strong>二、投資人重要確認事項</strong></p>'+
+'<p>（一） 受任人僅為資訊揭露及指示執行者，不提供投資建議或投資推薦。（二） 本投資不構成投資顧問服務、投資招攬、投資募集或任何形式之投資推介行為。（三） 本人確認已充分理解投資內容及相關風險，並有合理期間審閱本文件。（四） 投資可能發生全部或部分本金損失。（五） 投資標的經營、履約及市場風險，及其所生損失，均由本人自行承擔。（六） 投資資金一經投入投資程序，除依投資文件或代持約定外，不得請求返還。（七） 本人與投資標的間法律關係與受任人無涉。（八） 本人確認投資指示一經送達受任人即生效，除受任人尚未執行投資程序前，不得任意撤回或變更。如因撤回或變更致生任何損失，概由本人自行負責。（九） 本人不得因投資結果向受任人主張任何投資責任或損害賠償。</p>'+
+'<p style="margin-top:12px"><strong>三、代持關係聲明</strong></p>'+
+'<p>（一） 受任人僅為名義持有人，權益行使、收益分配及移轉依代持契約辦理。（二） 如本確認書與代持契約約定不一致，以代持契約為準。（三） 本確認書未約定事項，依相關投資文件辦理。</p>'+
+'<p style="margin-top:12px"><strong>四、電子簽署與證據效力</strong></p>'+
+'<p>本人同意以 LINE 或其他通訊軟體回傳之簽名圖片、對話紀錄及匯款紀錄，均視為本人正式簽署及完整意思表示，與書面簽名具有相同法律效力。</p>'+
+'<p style="margin-top:12px"><strong>五、準據法與管轄</strong></p>'+
+'<p>本確認書之解釋及適用，以中華民國法律為準據法。因本確認書所生或相關之一切爭議，雙方同意以臺灣高雄地方法院為第一審專屬管轄法院。</p>'+
+'<div style="margin-top:28px">'+
+'<p><strong>投資人簽署</strong></p>'+
+'<p style="margin-top:6px">本人已閱讀全部內容並同意。</p>'+
+'<p style="margin-top:12px">簽名：'+B(name)+'&nbsp;&nbsp;&nbsp;<span class="blank" style="min-width:160px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>'+
+'<p style="margin-top:10px">日期：中華民國&nbsp;'+_sy+'&nbsp;年&nbsp;'+_sm+'&nbsp;月&nbsp;'+_sd+'&nbsp;日</p>'+
+'<p style="font-size:8.5pt;color:#555;margin-top:4px">（請親簽後拍照或直接於圖片簽名回傳）</p>'+
+'</div>';
+}
+
+// ========== 股票代持協議書 ==========
+function gen2(){
+  var name=v('c0'), id=v('c1'), addr=v('c2');
+  var birth=v('c3'), phone=v('c4');
+  var co=v('c5'), sh=v('c6'), pr=v('c7');
+  var sign=v('c9');
+  var total=(sh&&pr)?parseInt(sh)*parseInt(pr):null;
+  var bp=roc(birth), sg=roc(sign);
+  var _birth=bp?bp.y+'年'+bp.m+'月'+bp.d+'日':B('',6);
+  var _sy=sg?sg.y:B('',3), _sm=sg?sg.m:B('',2), _sd=sg?sg.d:B('',2);
+  var totStr=total?'新臺幣'+total.toLocaleString('zh-TW')+'元整（'+numZh(total)+'）':null;
+  var penalty=total?Math.round(total*0.1).toLocaleString('zh-TW'):null;
+
+  g('c8').value = total ? 'NT$ '+total.toLocaleString('zh-TW')+' 元' : '';
+
+  g('doc').innerHTML=
+'<p style="text-align:center;font-size:16pt;font-weight:bold;letter-spacing:3px;margin-bottom:4px">股票代持協議書</p>'+
+'<p style="text-align:center;font-size:11pt;margin-bottom:18px">雙方權益契約</p>'+
+'<table width="100%" style="margin-bottom:10px;border-collapse:collapse;line-height:2.1">'+
+'<tr><td style="width:60px;font-weight:bold">立書人</td><td>投資人：'+B(name)+'（以下簡稱甲方）</td></tr>'+
+'<tr><td></td><td>受託人：游宗憲（以下簡稱乙方）</td></tr>'+
+'</table>'+
+'<p>甲、乙雙方經協商一致，就甲方委託乙方代為持股事宜達成協議如下：</p>'+
+'<p style="margin-top:12px"><strong>一、委託內容</strong></p>'+
+'<p>（一） 甲方自願委託乙方作為其對'+B(co,6)+'股份有限公司股份'+(sh?'<strong>'+parseInt(sh).toLocaleString('zh-TW')+'</strong>':B('',5))+'股之名義持有人。</p>'+
+'<p>（二） 乙方同意以自己名義代甲方持有相應股數。</p>'+
+'<p>（三） 本協議所約定之股份價格為雙方合意之交易價格，每股新台幣'+(pr?'<strong>'+parseInt(pr).toLocaleString('zh-TW')+'</strong>':B('',4))+'元，總價款為'+(totStr?'<strong>'+totStr+'</strong>':B('',10))+'，甲方確認已充分了解並同意該價格內容。</p>'+
+'<p>（四） 乙方得自行決定股份取得來源及成本，甲方不得以乙方取得成本與本協議價格差異為由主張任何權利或請求。（五） 乙方並非居間人、代理人或投資顧問，亦不構成代購或代為募集行為。（六） 本協議所涉股份轉讓行為，係基於雙方特定關係所為，不構成公開募集、投資招攬或不特定人之投資推介行為。（七） 如股份尚未完成登記於乙方名下前，雙方同意本協議所約定之權利義務仍有效存在；於股份正式登記完成前，乙方僅負協助取得股份之義務，並不構成實質持有或管理關係。（八） 如因公司行政程序、主管機關作業或其他非可歸責於乙方之事由致股份延遲登記，乙方不負違約責任。（九） 甲方應於簽署本協議後 3 日內，將總價款匯入乙方指定帳戶。（十） 本協議不構成合夥、信託或投資管理關係，乙方僅為名義持有人。（十一） 甲方確認其資金來源合法，並非以違法或洗錢資金參與本投資。</p>'+
+'<p style="margin-top:12px"><strong>二、委託權限</strong></p>'+
+'<p>（一） 因本代持關係所生之過戶費、證券交易稅、印花稅、匯款手續費及其他相關費用，均由甲方負擔。（二） 如因法令變更或主管機關要求產生其他費用，亦由甲方負擔。</p>'+
+'<p style="margin-top:12px"><strong>三、甲方之權利與義務</strong></p>'+
+'<p>（一） 甲方為實際出資人，享有股份之實質權益及收益；乙方僅為名義持有人。（二） 在代持期間內，甲方得要求將股份過戶至其本人或指定第三人名下，過戶所生一切費用由甲方負擔。（三） 如公司章程、股東協議或法令限制股份轉讓，甲方應自行承擔相關風險。</p>'+
+'<p style="margin-top:12px"><strong>四、乙方的權利與義務</strong></p>'+
+'<p>（一） 乙方得以名義股東身分參與公司活動及行使股東權利。（二） 未經甲方書面同意，不得轉委託第三人持有。（三） 未經甲方書面授權，不得轉讓、處分或設置擔保。（四） 如甲方於股東會前以書面或可留存紀錄方式提出具體指示者，乙方應於合理範圍內配合辦理。（五） 代持股份不屬乙方固有財產，亦不列入乙方個人或家庭財產範圍。（六） 甲方確認已充分了解未上市或興櫃公司股份可能存在流動性不足、價格波動、公司經營風險、財務資訊不對稱及無法順利轉讓等風險。甲方並確認該等風險屬投資固有風險，相關損失應由甲方自行承擔。（七） 投資盈虧均由甲方自行承擔，乙方不對公司營運成果或投資報酬為任何保證。（八） 甲方確認已自行評估投資標的之風險與適合度，本次投資決定係基於甲方自主判斷所為，並非依賴乙方之保證或承諾。（九） 乙方僅就其故意或重大過失違反本協議所生之直接損害負賠償責任；投資本金損失、價格波動損失、機會損失或其他投資固有風險所生之損害，均不在賠償範圍內。（十） 乙方得不定期向甲方提供公司相關資訊或進度說明，不保證資訊提供之即時性、完整性或連續性。（十一） 乙方提供之任何資訊、說明或市場分析，均不構成對公司上市、掛牌或特定時程之保證。</p>'+
+'<p style="margin-top:12px"><strong>五、代持期間及終止</strong></p>'+
+'<p>（一） 本代持關係於股份登記於乙方名下時開始履行；本協議自雙方簽署之日起生效。（二） 於股份完成過戶至甲方或其指定第三人名下時，代持關係當然終止。（三） 代持終止後，乙方不再負任何持股管理、資訊提供或其他持續性義務。（四） 如甲方有下列情形之一，乙方得通知終止本協議：1.未依約支付相關費用；2.無正當理由拒絕配合過戶程序；3.違反保密義務；4.有損及乙方權益之行為。（五） 股份完成登記或乙方已依本協議完成股份取得程序後，甲方不得以任何理由請求返還投資價款，但因乙方故意或重大過失所致者，不在此限。如甲方無正當理由解除或拒絕履行本協議，應支付相當於投資總價款百分之十之違約金'+(penalty?'（即新臺幣<strong>'+penalty+'</strong>元）':'')+'。雙方同意該違約金屬合理預估損害賠償額。</p>'+
+'<p style="margin-top:12px"><strong>六、保密條款</strong></p>'+
+'<p>雙方對於本協議履行過程中所知悉之資訊負保密義務。除依法令規定、主管機關要求或經對方書面同意外，不得向第三人揭露。違反者應賠償對方因此所受之直接損害。</p>'+
+'<p style="margin-top:12px"><strong>七、準據法及管轄</strong></p>'+
+'<p>（一） 本協議之解釋及適用，以中華民國法律為準據法。（二） 因本協議所生或與本協議相關之一切爭議，雙方同意以臺灣高雄地方法院為第一審專屬管轄法院。</p>'+
+'<p style="margin-top:12px"><strong>八、其他事項</strong></p>'+
+'<p>本協議一式兩份，雙方各執一份。</p>'+
+'<table width="100%" style="margin-top:24px;border-collapse:collapse">'+
+'<tr>'+
+'<td style="width:49%;vertical-align:top;padding-right:14px">'+
+'<p><strong>甲方：'+B(name)+'（簽章）</strong></p>'+
+'<p style="margin-top:6px">投資人：'+B(name)+'</p>'+
+'<p>身份證字號：'+B(id)+'</p>'+
+'<p>通訊地址：'+B(addr,10)+'</p>'+
+'<p>出生年月日：'+_birth+'</p>'+
+'<p>電話號碼：'+B(phone)+'</p>'+
+'</td>'+
+'<td style="width:2%"></td>'+
+'<td style="width:49%;vertical-align:top;padding-left:14px;border-left:1px solid #777">'+
+'<p><strong>乙方：游宗憲（簽章）</strong></p>'+
+'<p style="margin-top:6px">受託人：游宗憲</p>'+
+'<p>身份證字號：[ID_REDACTED]</p>'+
+'<p>通訊地址：[ADDRESS_REDACTED]</p>'+
+'<p>出生年月日：[BIRTHDATE_REDACTED]</p>'+
+'<p>電話號碼：[PHONE_REDACTED]</p>'+
+'</td>'+
+'</tr>'+
+'</table>'+
+'<p style="text-align:center;margin-top:22px">中&nbsp;&nbsp;華&nbsp;&nbsp;民&nbsp;&nbsp;國&nbsp;&nbsp;'+_sy+'&nbsp;&nbsp;年&nbsp;&nbsp;'+_sm+'&nbsp;&nbsp;月&nbsp;&nbsp;'+_sd+'&nbsp;&nbsp;日</p>';
+}
+
+function doCopy(){
+  var text=g('doc').innerText;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){ alert('已複製！'); }).catch(function(){
+      prompt('請手動複製：',text);
+    });
+  } else {
+    prompt('請手動複製：',text);
+  }
+}
+
+// 初始化
+(function init(){
+  var today=new Date().toISOString().split('T')[0];
+  ['a9','b7','c9'].forEach(function(id){ var e=g(id); if(e)e.value=today; });
+  g('a4').value=today;
+  setEnd();
+  go();
+})();
+</script>
+</body>
+</html>
