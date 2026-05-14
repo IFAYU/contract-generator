@@ -66,11 +66,28 @@ body{font-family:'Microsoft JhengHei',-apple-system,sans-serif;background:#f0f0f
 #doc strong.filled{color:#000;font-weight:700}
 
 /* 列印 */
+@page{
+  size:A4 portrait;
+  margin:18mm 20mm;
+}
 @media print{
-  #sidebar{display:none!important}
-  #main{margin-left:0;padding:0}
-  #doc{box-shadow:none;max-width:none;padding:20mm 25mm}
-  body{background:white}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #pw-overlay,#sidebar{display:none!important}
+  body{background:white!important;margin:0;padding:0}
+  #app-root,#main{display:block!important;margin:0!important;padding:0!important}
+  #doc{
+    box-shadow:none!important;
+    border:none!important;
+    margin:0!important;
+    padding:0!important;
+    max-width:none!important;
+    width:100%!important;
+    min-height:auto!important;
+    font-size:10.5pt!important;
+    line-height:1.8!important;
+  }
+  #doc p{margin-bottom:1px}
+  #doc table{width:100%!important}
 }
 </style>
 </head>
