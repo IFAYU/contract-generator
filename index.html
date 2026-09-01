@@ -114,6 +114,14 @@ body{font-family:'Microsoft JhengHei',-apple-system,sans-serif;background:#f0f0f
     <button class="tab" onclick="sw(2)">股票代持</button>
   </div>
 
+  <!-- 受任人（你本人）資料：只存在這台瀏覽器的 localStorage，不再寫死在原始碼裡 -->
+  <div class="g">受任人（你本人）資料</div>
+  <div class="row"><label>受任人姓名</label><input id="ag0" placeholder="姓名" oninput="saveAgent();go()"></div>
+  <div class="row"><label>受任人身分證字號</label><input id="ag1" placeholder="A123456789" oninput="saveAgent();go()"></div>
+  <div class="row"><label>受任人地址</label><input id="ag2" placeholder="縣市區路號" oninput="saveAgent();go()"></div>
+  <div class="row"><label>受任人電話</label><input id="ag3" placeholder="0900000000" oninput="saveAgent();go()"></div>
+  <div class="row"><label>受任人出生年月日</label><input type="date" id="ag4" oninput="saveAgent();go()"></div>
+
   <!-- FORM 0 -->
   <div id="f0">
     <div class="row"><label>委託人姓名 *</label><input class="name-input" id="a0" placeholder="王小明" oninput="go()"></div>
@@ -141,7 +149,7 @@ body{font-family:'Microsoft JhengHei',-apple-system,sans-serif;background:#f0f0f
     <div class="row"><label>身分證 / 統編</label><input id="b1" placeholder="A123456789" oninput="go()"></div>
     <div class="row"><label>案件編號</label><input id="b2" placeholder="2025-001" oninput="go()"></div>
     <div class="g">投資資訊</div>
-    <div class="row"><label>受任人（財務顧問）</label><input id="b3" value="游宗憲" oninput="go()"></div>
+    <div class="row"><label>受任人（財務顧問，留空則用上方受任人姓名）</label><input id="b3" placeholder="留空套用上方設定" oninput="go()"></div>
     <div class="row"><label>投資標的名稱</label><input id="b4" placeholder="藍新科技股份有限公司" oninput="go()"></div>
     <div class="row"><label>投資金額（元）</label><input type="number" id="b5" placeholder="0" oninput="go()"></div>
     <div class="row"><label>預計執行日期</label><input type="date" id="b6" oninput="go()"></div>
@@ -231,6 +239,25 @@ function numZh(n){
   return r+'元整';
 }
 
+function saveAgent(){
+  try{
+    localStorage.setItem('cg_agent', JSON.stringify({
+      n:v('ag0'), id:v('ag1'), addr:v('ag2'), ph:v('ag3'), b:v('ag4')
+    }));
+  }catch(e){}
+}
+
+function restoreAgent(){
+  try{
+    var d = JSON.parse(localStorage.getItem('cg_agent')||'{}');
+    if(d.n) g('ag0').value=d.n;
+    if(d.id) g('ag1').value=d.id;
+    if(d.addr) g('ag2').value=d.addr;
+    if(d.ph) g('ag3').value=d.ph;
+    if(d.b) g('ag4').value=d.b;
+  }catch(e){}
+}
+
 function B(val, len){
   len = len||6;
   if(val) return '<strong class="filled">'+val+'</strong>';
@@ -257,6 +284,7 @@ function go(){
 // ========== 財顧委任合約書 ==========
 function gen0(){
   var name=v('a0'), id=v('a1'), addr=v('a2'), phone=v('a3');
+  var agName=v('ag0'), agId=v('ag1'), agAddr=v('ag2'), agPhone=v('ag3');
   var s=v('a4'), e=v('a5');
   var fee=v('a6')||'15000';
   var pm=v('a7'), pd=v('a8');
@@ -271,7 +299,7 @@ function gen0(){
   g('doc').innerHTML =
 '<p style="text-align:center;font-size:16pt;font-weight:bold;letter-spacing:4px;margin-bottom:20px">財顧委任合約書</p>'+
 '<p>委託人：'+B(name)+'</p>'+
-'<p>受任人：游宗憲</p>'+
+'<p>受任人：'+B(agName)+'</p>'+
 '<p style="margin-top:10px">緣委託人委請受任人提供資本市場資訊、分享其經驗，並於合法範圍內就委託人詢問事項提供諮詢意見，雙方合意約定之權利義務如下：</p>'+
 '<p style="margin-top:12px"><strong>一、服務性質與法律定位</strong></p>'+
 '<p>（一） 本契約服務內容僅屬：</p>'+
@@ -323,10 +351,10 @@ function gen0(){
 '</td>'+
 '<td style="width:4%"></td>'+
 '<td style="width:48%;vertical-align:top;padding-left:16px;border-left:1px solid #666">'+
-'<p><strong>受任人：游宗憲</strong></p>'+
-'<p>身分證字號：[ID_REDACTED]</p>'+
-'<p>地址：[ADDRESS_REDACTED]</p>'+
-'<p>電話：[PHONE_REDACTED]</p>'+
+'<p><strong>受任人：'+B(agName)+'</strong></p>'+
+'<p>身分證字號：'+B(agId)+'</p>'+
+'<p>地址：'+B(agAddr,12)+'</p>'+
+'<p>電話：'+B(agPhone)+'</p>'+
 '</td>'+
 '</tr>'+
 '</table>'+
@@ -344,7 +372,7 @@ function gen0(){
 // ========== 投資參與確認書 ==========
 function gen1(){
   var name=v('b0'), id=v('b1'), caseNo=v('b2');
-  var agent=v('b3')||'游宗憲';
+  var agent=v('b3')||v('ag0');
   var target=v('b4'), amt=v('b5');
   var exec=v('b6'), sign=v('b7');
   var ep=roc(exec), sg=roc(sign);
@@ -388,11 +416,14 @@ function gen1(){
 function gen2(){
   var name=v('c0'), id=v('c1'), addr=v('c2');
   var birth=v('c3'), phone=v('c4');
+  var agName=v('ag0'), agId=v('ag1'), agAddr=v('ag2'), agPhone=v('ag3'), agBirth=v('ag4');
   var co=v('c5'), sh=v('c6'), pr=v('c7');
   var sign=v('c9');
   var total=(sh&&pr)?parseInt(sh)*parseInt(pr):null;
   var bp=roc(birth), sg=roc(sign);
   var _birth=bp?bp.y+'年'+bp.m+'月'+bp.d+'日':B('',6);
+  var agBp=roc(agBirth);
+  var _agBirth=agBp?agBp.y+'年'+agBp.m+'月'+agBp.d+'日':B('',6);
   var _sy=sg?sg.y:B('',3), _sm=sg?sg.m:B('',2), _sd=sg?sg.d:B('',2);
   var totStr=total?'新臺幣'+total.toLocaleString('zh-TW')+'元整（'+numZh(total)+'）':null;
   var penalty=total?Math.round(total*0.1).toLocaleString('zh-TW'):null;
@@ -404,7 +435,7 @@ function gen2(){
 '<p style="text-align:center;font-size:11pt;margin-bottom:18px">雙方權益契約</p>'+
 '<table width="100%" style="margin-bottom:10px;border-collapse:collapse;line-height:2.1">'+
 '<tr><td style="width:60px;font-weight:bold">立書人</td><td>投資人：'+B(name)+'（以下簡稱甲方）</td></tr>'+
-'<tr><td></td><td>受託人：游宗憲（以下簡稱乙方）</td></tr>'+
+'<tr><td></td><td>受託人：'+B(agName)+'（以下簡稱乙方）</td></tr>'+
 '</table>'+
 '<p>甲、乙雙方經協商一致，就甲方委託乙方代為持股事宜達成協議如下：</p>'+
 '<p style="margin-top:12px"><strong>一、委託內容</strong></p>'+
@@ -438,12 +469,12 @@ function gen2(){
 '</td>'+
 '<td style="width:2%"></td>'+
 '<td style="width:49%;vertical-align:top;padding-left:14px;border-left:1px solid #777">'+
-'<p><strong>乙方：游宗憲（簽章）</strong></p>'+
-'<p style="margin-top:6px">受託人：游宗憲</p>'+
-'<p>身份證字號：[ID_REDACTED]</p>'+
-'<p>通訊地址：[ADDRESS_REDACTED]</p>'+
-'<p>出生年月日：[BIRTHDATE_REDACTED]</p>'+
-'<p>電話號碼：[PHONE_REDACTED]</p>'+
+'<p><strong>乙方：'+B(agName)+'（簽章）</strong></p>'+
+'<p style="margin-top:6px">受託人：'+B(agName)+'</p>'+
+'<p>身份證字號：'+B(agId)+'</p>'+
+'<p>通訊地址：'+B(agAddr,10)+'</p>'+
+'<p>出生年月日：'+_agBirth+'</p>'+
+'<p>電話號碼：'+B(agPhone)+'</p>'+
 '</td>'+
 '</tr>'+
 '</table>'+
@@ -463,6 +494,7 @@ function doCopy(){
 
 // 初始化
 (function init(){
+  restoreAgent();
   var today=new Date().toISOString().split('T')[0];
   ['a9','b7','c9'].forEach(function(id){ var e=g(id); if(e)e.value=today; });
   g('a4').value=today;
